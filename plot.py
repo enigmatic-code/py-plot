@@ -6,7 +6,7 @@
 # Description:  A Simple Plotting Library Using Tk
 # Author:       Jim Randell
 # Created:      Sat Oct  6 10:33:02 2012
-# Modified:     Wed Jan 20 11:56:36 2016 (Jim Randell) jim.randell@gmail.com
+# Modified:     Sat Feb 10 07:20:23 2018 (Jim Randell) jim.randell@gmail.com
 # Language:     Python
 # Package:      N/A
 # Status:       Experimental (Do Not Distribute)
@@ -37,137 +37,6 @@ try:
 except ImportError:
   print('WARNING: Tk (tkinter) not found')
 
-class Plot(object):
-  """
-  Plot(xscale=1, yscale=1, xoffset=0, yoffset=0)
-
-  A plot object.
-
-  You can interact with the plot window in the following ways:
-
-  * click and drag to reposition the plot.
-  * plus key (or equals key) to zoom in.
-  * minus key to zoom out.
-  * escape key (or Q) to quit.
-  """
-
-  # initialise the plot
-  def __init__(self, xscale=1, yscale=1, xoffset=0, yoffset=0):
-    self.objects = list()
-    self.border = 20
-    self.xscale = float(xscale)
-    self.yscale = float(yscale)
-    self.xoffset = xoffset
-    self.yoffset = yoffset
-
-  # add an object to plot
-  def add(self, x):
-    self.objects.append(x)
-
-  # remove all objects to plot
-  def clear(self):
-    del self.objects[:]
-
-  # display the objects
-  def display(self):
-
-    # create a window with a canvas in it
-    master = Tk.Tk()
-
-    self.canvas = canvas = Tk.Canvas(master, width=600, height=600, highlightthickness=0)
-    canvas.pack(fill=Tk.BOTH, expand=1)
-
-    # interaction
-    canvas.bind('<Configure>', self.draw_handler)
-    canvas.bind('<Button-1>', self.click_handler)
-    canvas.bind('<B1-Motion>', self.drag_handler)
-    canvas.bind('<ButtonRelease-1>', self.release_handler)
-    canvas.bind('<KeyPress-minus>', self.zoom_minus)
-    canvas.bind('<KeyPress-plus>', self.zoom_plus)
-    canvas.bind('<KeyPress-equal>', self.zoom_plus)
-    canvas.bind('<Double-Button-1>', self.double_click_handler)
-    canvas.bind('<Double-Button-2>', self.double_click2_handler)
-
-    # keyboard actions
-    # Q, Esc = quit
-    quit = lambda e: master.quit()
-    canvas.bind('<KeyPress-Escape>', quit)
-    canvas.bind('<KeyPress-q>', quit)
-    # S = capture image to file (plot.png)
-    canvas.bind('<KeyPress-s>', self.screencapture)
-
-    canvas.focus_set()
-    Tk.mainloop()
-
-  # draw the objects
-  def draw(self):
-    self.canvas.delete(Tk.ALL)
-    for i in self.objects:
-      i.draw(self.canvas, self.border, self.canvas.winfo_height() - self.border,
-             xscale=self.xscale, yscale=self.yscale,
-             xoffset=self.xoffset, yoffset=self.yoffset)
-
-  # handlers
-
-  def draw_handler(self, event=None):
-    self.draw()
-
-  def click_handler(self, event=None):
-    (self.move_x, self.move_y) = (event.x, event.y)
-    (self.delta_x, self.delta_y) = (0, 0)
-
-  def drag_handler(self, event=None):
-    (x, y) = (event.x, event.y)
-    (dx, dy) = (x - self.move_x, y - self.move_y)
-    self.delta_x += dx
-    self.delta_y += dy
-    # move everything by (dx, dy)
-    self.canvas.move('move', dx, dy)
-    (self.move_x, self.move_y) = (x, y)
-
-  def release_handler(self, event=None):
-    self.xoffset += self.delta_x / self.xscale
-    self.yoffset -= self.delta_y / self.yscale
-    self.draw()
-
-  def zoom_minus(self, event=None):
-    self.xoffset += (self.canvas.winfo_width() - 2 * self.border) / (2 * self.xscale)
-    self.yoffset += (self.canvas.winfo_height() - 2 * self.border) / (2 * self.yscale)
-    self.xscale /= 2.0
-    self.yscale /= 2.0
-    self.draw()
-
-  def zoom_plus(self, event=None):
-    self.xscale *= 2.0
-    self.yscale *= 2.0
-    self.xoffset -= (self.canvas.winfo_width() - 2 * self.border) / (2 * self.xscale)
-    self.yoffset -= (self.canvas.winfo_height() - 2 * self.border) / (2 * self.yscale)
-    self.draw()
-
-  def double_click_handler(self, event=None, button=1):
-    (x, y) = (event.x, event.y)
-    # centre at <x>,<y>
-    (dx, dy) = (self.canvas.winfo_width() / 2 - x, y - self.canvas.winfo_height() / 2)
-    self.xoffset += dx / self.xscale
-    self.yoffset += dy / self.yscale
-    if button == 1:
-      self.zoom_plus()
-    elif button == 2:
-      self.zoom_minus()
-    else:
-      self.draw()
-
-  def double_click2_handler(self, event):
-    self.double_click_handler(event, 2)
-
-  def screencapture(self, event=None):
-    if sys.platform == 'darwin':
-      # OS X
-      import subprocess
-      # -iw = interactive window mode (Esc to cancel)
-      # -P = open in "Preview"
-      subprocess.call(['screencapture', '-iw', '-P', 'plot.png'])
-
 # translate args to tk equivalents
 T = {
   'fill': 'fill',
@@ -180,6 +49,7 @@ T = {
   'arrow': 'arrow',
   'dash': 'dash',
   'anchor': 'anchor',
+  'font': 'font',
 }
 
 # common defaults
@@ -307,3 +177,184 @@ class Label(Shape):
   def draw(self, canvas, x0=0, y0=0, xscale=1, yscale=1, xoffset=0, yoffset=0):
     (x, y) = self.point
     canvas.create_text(x0 + (x + xoffset) * xscale, y0 - (y + yoffset) * yscale, text=self.text, **self.tkargs)
+
+
+class Plot(object):
+  """
+  Plot(xscale=1, yscale=1, xoffset=0, yoffset=0)
+
+  A plot object.
+
+  You can interact with the plot window in the following ways:
+
+  * click and drag to reposition the plot.
+  * plus key (or equals key) to zoom in.
+  * minus key to zoom out.
+  * escape key (or Q) to quit.
+  """
+
+  # initialise the plot
+  def __init__(self, xscale=1, yscale=1, xoffset=0, yoffset=0):
+    self.objects = list()
+    self.border = 20
+    self.xscale = float(xscale)
+    self.yscale = float(yscale)
+    self.xoffset = xoffset
+    self.yoffset = yoffset
+
+  # add an object to plot
+  def add(self, x):
+    self.objects.append(x)
+
+  # remove all objects to plot
+  def clear(self):
+    del self.objects[:]
+
+  # display the objects
+  def display(self):
+
+    # create a window with a canvas in it
+    master = Tk.Tk()
+
+    self.canvas = canvas = Tk.Canvas(master, width=600, height=600, highlightthickness=0)
+    canvas.pack(fill=Tk.BOTH, expand=1)
+
+    # interaction
+    canvas.bind('<Configure>', self.draw_handler)
+    canvas.bind('<Button-1>', self.click_handler)
+    canvas.bind('<B1-Motion>', self.drag_handler)
+    canvas.bind('<ButtonRelease-1>', self.release_handler)
+    canvas.bind('<KeyPress-minus>', self.zoom_minus)
+    canvas.bind('<KeyPress-plus>', self.zoom_plus)
+    canvas.bind('<KeyPress-equal>', self.zoom_plus)
+    canvas.bind('<Double-Button-1>', self.double_click_handler)
+    canvas.bind('<Double-Button-2>', self.double_click2_handler)
+
+    # keyboard actions
+    # Q, Esc = quit
+    quit = lambda e: master.quit()
+    canvas.bind('<KeyPress-Escape>', quit)
+    canvas.bind('<KeyPress-q>', quit)
+    # S = capture image to file (plot.png)
+    canvas.bind('<KeyPress-s>', self.screencapture)
+    # I = info
+    canvas.bind('<KeyPress-i>', self.info_handler)
+
+    canvas.focus_set()
+    Tk.mainloop()
+
+  # draw the objects
+  def draw(self):
+    self.canvas.delete(Tk.ALL)
+    for i in self.objects:
+      i.draw(self.canvas, self.border, self.canvas.winfo_height() - self.border,
+             xscale=self.xscale, yscale=self.yscale,
+             xoffset=self.xoffset, yoffset=self.yoffset)
+
+  # handlers
+
+  def draw_handler(self, event=None):
+    self.draw()
+
+  def click_handler(self, event=None):
+    (self.move_x, self.move_y) = (event.x, event.y)
+    (self.delta_x, self.delta_y) = (0, 0)
+
+  def drag_handler(self, event=None):
+    (x, y) = (event.x, event.y)
+    (dx, dy) = (x - self.move_x, y - self.move_y)
+    self.delta_x += dx
+    self.delta_y += dy
+    # move everything by (dx, dy)
+    self.canvas.move('move', dx, dy)
+    (self.move_x, self.move_y) = (x, y)
+
+  def release_handler(self, event=None):
+    self.xoffset += self.delta_x / self.xscale
+    self.yoffset -= self.delta_y / self.yscale
+    self.draw()
+
+  def zoom_minus(self, event=None):
+    self.xoffset += (self.canvas.winfo_width() - 2 * self.border) / (2 * self.xscale)
+    self.yoffset += (self.canvas.winfo_height() - 2 * self.border) / (2 * self.yscale)
+    self.xscale /= 2.0
+    self.yscale /= 2.0
+    self.draw()
+
+  def zoom_plus(self, event=None):
+    self.xscale *= 2.0
+    self.yscale *= 2.0
+    self.xoffset -= (self.canvas.winfo_width() - 2 * self.border) / (2 * self.xscale)
+    self.yoffset -= (self.canvas.winfo_height() - 2 * self.border) / (2 * self.yscale)
+    self.draw()
+
+  def double_click_handler(self, event=None, button=1):
+    (x, y) = (event.x, event.y)
+    # centre at <x>,<y>
+    (dx, dy) = (self.canvas.winfo_width() / 2 - x, y - self.canvas.winfo_height() / 2)
+    self.xoffset += dx / self.xscale
+    self.yoffset += dy / self.yscale
+    if button == 1:
+      self.zoom_plus()
+    elif button == 2:
+      self.zoom_minus()
+    else:
+      self.draw()
+
+  def double_click2_handler(self, event):
+    self.double_click_handler(event, 2)
+
+  def info_handler(self, event):
+      print("xscale={xscale} yscale={yscale} xoffset={xoffset} yoffset={yoffset}".format(**self.__dict__))
+
+  def screencapture(self, event=None):
+    if sys.platform == 'darwin':
+      # OS X
+      import subprocess
+      # -iw = interactive window mode (Esc to cancel)
+      # -P = open in "Preview"
+      subprocess.call(['screencapture', '-iw', '-P', 'plot.png'])
+
+
+  # shapes
+  def line(self, *args, **kw): self.add(Line(*args, **kw))
+  def polygon(self, *args, **kw): self.add(Polygon(*args, **kw))
+  def circle(self, *args, **kw): self.add(Circle(*args, **kw))
+  def label(self, *args, **kw): self.add(Label(*args, **kw))
+
+  # graph axes
+  def graph_axes(self, xaxis, yaxis, xlabels=None, ylabels=None):
+    (xaxis, yaxis) = map(list, (xaxis, yaxis))
+    (xmax, ymax) = (xaxis[-1], yaxis[-1])
+
+    black = "black"
+    widths = [1, 2]
+    font=("Times New Roman", 18)
+
+    # x-axis
+    xt = xmax * 0.015
+    for i in xaxis:
+      self.line((-xt, i, xmax, i), width=widths[i == 0], colour=black)
+
+    # y-axis
+    yt = ymax * 0.015
+    for i in yaxis:
+      self.line((i, -yt, i, ymax), width=widths[i == 0], colour=black)
+
+    # x-axis labels
+    if xlabels:
+      xlabels = list(xlabels)
+      n = len(xlabels) - 1
+      for (i, t) in enumerate(xlabels):
+        x = xmax * i / n
+        self.label((x, -yt * 1.5), t, colour=black, anchor="n", font=font)
+
+    # y-axis labels
+    if ylabels:
+      ylabels = list(ylabels)
+      n = len(ylabels) - 1
+      for (i, t) in enumerate(ylabels):
+        y = ymax * i / n
+        self.label((-xt * 1.5, y), t, colour=black, anchor="e", font=font)
+
+           
