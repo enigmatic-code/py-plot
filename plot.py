@@ -6,7 +6,7 @@
 # Description:  A Simple Plotting Library Using Tk
 # Author:       Jim Randell
 # Created:      Sat Oct  6 10:33:02 2012
-# Modified:     Sat Feb 10 07:20:23 2018 (Jim Randell) jim.randell@gmail.com
+# Modified:     Sat Aug 11 21:58:54 2018 (Jim Randell) jim.randell@gmail.com
 # Language:     Python
 # Package:      N/A
 # Status:       Experimental (Do Not Distribute)
@@ -44,12 +44,15 @@ T = {
   'colour': 'fill',
   'width': 'width',
   'outline': 'outline',
+  'stipple': 'stipple', # but Tk on macOS doesn't seem to support 'stipple'
   'cap': 'capstyle',
   'join': 'joinstyle',
   'arrow': 'arrow',
   'dash': 'dash',
   'anchor': 'anchor',
   'font': 'font',
+  'start': 'start',
+  'extent': 'extent',
 }
 
 # common defaults
@@ -158,6 +161,35 @@ class Circle(Shape):
     canvas.create_oval(*pts, **self.tkargs)
 
 
+# draw an arc [provisional support]
+class Arc(Shape):
+  """
+  Arc((x, y), r, squish=1, arg=value, ...)
+
+  Draw an arc, centred at (x, y) of radius r.
+
+  Using a squish value that isn't 1 will draw an ellipse.
+
+  Useful args:
+  width=<width> - pixel width of outline
+  outline=<colour> - outline colour ('black', 'red', '#rrggbb', ...)
+  fill=<color> - fill colour (None, 'black', 'red', '#rrggbb', ...)
+  """
+
+  def __init__(self, centre, radius, squish=1.0, **args):
+    self.centre = centre
+    self.radius = radius
+    self.squish = squish # squish in the y direction
+    self.set_args(args)
+
+  def draw(self, canvas, x0=0, y0=0, xscale=1, yscale=1, xoffset=0, yoffset=0):
+    (x1, y1, x2, y2) = (self.centre[0] - self.radius, self.centre[1] - self.radius * self.squish,
+                        self.centre[0] + self.radius, self.centre[1] + self.radius * self.squish)
+    pts = (x0 + (x1 + xoffset) * xscale, y0 - (y1 + yoffset) * yscale,
+           x0 + (x2 + xoffset) * xscale, y0 - (y2 + yoffset) * yscale)
+    canvas.create_arc(*pts, **self.tkargs)
+
+
 # draw a text label
 class Label(Shape):
   """
@@ -201,6 +233,11 @@ class Plot(object):
     self.yscale = float(yscale)
     self.xoffset = xoffset
     self.yoffset = yoffset
+    # for animations
+    self.frame_iter = None
+    self.frame_fn = None
+    self.frame_delay = None
+    self.playing = 0
 
   # add an object to plot
   def add(self, x):
@@ -210,6 +247,31 @@ class Plot(object):
   def clear(self):
     del self.objects[:]
 
+  # for animation
+  def animate(self, frames, fn, delay):
+    self.frame_iter = iter(frames)
+    self.frame_fn = fn
+    self.frame_delay = delay
+
+  # do the next frame in an animation
+  def next_frame(self, play=0):
+    i = self.frame_iter
+    if i is None: return
+    try:
+      t = next(i)
+    except StopIteration:
+      return
+
+    self.clear()
+    self.frame_fn(t)
+    self.draw()
+
+    # if play is set automatically trigger the following frame
+    if play and self.playing:
+      self.canvas.after(self.frame_delay, self.next_frame, 1)
+
+    return t
+    
   # display the objects
   def display(self):
 
@@ -219,14 +281,19 @@ class Plot(object):
     self.canvas = canvas = Tk.Canvas(master, width=600, height=600, highlightthickness=0)
     canvas.pack(fill=Tk.BOTH, expand=1)
 
+    # if we are animating draw the first frame
+    if self.frame_fn: self.next_frame()
+
     # interaction
     canvas.bind('<Configure>', self.draw_handler)
     canvas.bind('<Button-1>', self.click_handler)
     canvas.bind('<B1-Motion>', self.drag_handler)
     canvas.bind('<ButtonRelease-1>', self.release_handler)
     canvas.bind('<KeyPress-minus>', self.zoom_minus)
+    canvas.bind('<KeyPress-comma>', self.zoom_minus)
     canvas.bind('<KeyPress-plus>', self.zoom_plus)
     canvas.bind('<KeyPress-equal>', self.zoom_plus)
+    canvas.bind('<KeyPress-period>', self.zoom_plus)
     canvas.bind('<Double-Button-1>', self.double_click_handler)
     canvas.bind('<Double-Button-2>', self.double_click2_handler)
 
@@ -240,6 +307,10 @@ class Plot(object):
     # I = info
     canvas.bind('<KeyPress-i>', self.info_handler)
 
+    # F = step forward a frame
+    canvas.bind('<KeyPress-f>', self.frame_handler)
+    canvas.bind('<KeyPress-space>', self.play_pause_handler)
+
     canvas.focus_set()
     Tk.mainloop()
 
@@ -247,9 +318,11 @@ class Plot(object):
   def draw(self):
     self.canvas.delete(Tk.ALL)
     for i in self.objects:
-      i.draw(self.canvas, self.border, self.canvas.winfo_height() - self.border,
-             xscale=self.xscale, yscale=self.yscale,
-             xoffset=self.xoffset, yoffset=self.yoffset)
+      i.draw(
+        self.canvas, self.border, self.canvas.winfo_height() - self.border,
+        xscale=self.xscale, yscale=self.yscale,
+        xoffset=self.xoffset, yoffset=self.yoffset
+      )
 
   # handlers
 
@@ -315,11 +388,22 @@ class Plot(object):
       # -P = open in "Preview"
       subprocess.call(['screencapture', '-iw', '-P', 'plot.png'])
 
+  def frame_handler(self, event):
+    self.next_frame()
+
+  def play_pause_handler(self, event):    
+    if self.playing:
+      self.playing = 0
+    else:
+      self.playing = 1
+      self.next_frame(play=1)
+
 
   # shapes
   def line(self, *args, **kw): self.add(Line(*args, **kw))
   def polygon(self, *args, **kw): self.add(Polygon(*args, **kw))
   def circle(self, *args, **kw): self.add(Circle(*args, **kw))
+  def arc(self, *args, **kw): self.add(Arc(*args, **kw))
   def label(self, *args, **kw): self.add(Label(*args, **kw))
 
   # graph axes
