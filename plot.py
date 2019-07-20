@@ -6,7 +6,7 @@
 # Description:  A Simple Plotting Library Using Tk
 # Author:       Jim Randell
 # Created:      Sat Oct  6 10:33:02 2012
-# Modified:     Sat Aug 11 21:58:54 2018 (Jim Randell) jim.randell@gmail.com
+# Modified:     Sat Jul 20 10:00:24 2019 (Jim Randell) jim.randell@gmail.com
 # Language:     Python
 # Package:      N/A
 # Status:       Experimental (Do Not Distribute)
@@ -227,6 +227,8 @@ class Plot(object):
 
   # initialise the plot
   def __init__(self, xscale=1, yscale=1, xoffset=0, yoffset=0):
+    if sys.platform == "darwin" and sys.executable not in ["/usr/bin/python"]:
+      print("WARNING! using {exe}".format(exe=sys.executable))
     self.objects = list()
     self.border = 20
     self.xscale = float(xscale)
@@ -278,7 +280,7 @@ class Plot(object):
     # create a window with a canvas in it
     master = Tk.Tk()
 
-    self.canvas = canvas = Tk.Canvas(master, width=600, height=600, highlightthickness=0)
+    self.canvas = canvas = Tk.Canvas(master, width=600, height=600, highlightthickness=0, background="white")
     canvas.pack(fill=Tk.BOTH, expand=1)
 
     # if we are animating draw the first frame
@@ -378,7 +380,7 @@ class Plot(object):
     self.double_click_handler(event, 2)
 
   def info_handler(self, event):
-      print("xscale={xscale} yscale={yscale} xoffset={xoffset} yoffset={yoffset}".format(**self.__dict__))
+      print("xscale={xscale}, yscale={yscale}, xoffset={xoffset}, yoffset={yoffset}".format(**self.__dict__))
 
   def screencapture(self, event=None):
     if sys.platform == 'darwin':
@@ -440,5 +442,3 @@ class Plot(object):
       for (i, t) in enumerate(ylabels):
         y = ymax * i / n
         self.label((-xt * 1.5, y), t, colour=black, anchor="e", font=font)
-
-           
