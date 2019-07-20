@@ -6,7 +6,7 @@
 # Description:  A Simple Plotting Library Using Tk
 # Author:       Jim Randell
 # Created:      Sat Oct  6 10:33:02 2012
-# Modified:     Sat Jul 20 10:00:24 2019 (Jim Randell) jim.randell@gmail.com
+# Modified:     Sat Jul 20 10:02:14 2019 (Jim Randell) jim.randell@gmail.com
 # Language:     Python
 # Package:      N/A
 # Status:       Experimental (Do Not Distribute)
@@ -23,7 +23,7 @@
 from __future__ import print_function
 
 __author__ = "Jim Randell <jim.randell@gmail.com>"
-__version__ = "2014-04-14"
+__version__ = "2019-07-20"
 
 import sys
 
