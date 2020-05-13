@@ -6,12 +6,12 @@
 # Description:  A Simple Plotting Library Using Tk
 # Author:       Jim Randell
 # Created:      Sat Oct  6 10:33:02 2012
-# Modified:     Sat Jul 20 10:02:14 2019 (Jim Randell) jim.randell@gmail.com
+# Modified:     Mon May 11 17:13:39 2020 (Jim Randell) jim.randell@gmail.com
 # Language:     Python
 # Package:      N/A
 # Status:       Experimental (Do Not Distribute)
 #
-# (C) Copyright 2012, Jim Randell, all rights reserved.
+# (C) Copyright 2012-2020, Jim Randell, all rights reserved.
 #
 ###############################################################################
 # -*- mode: Python; py-indent-offset: 2; -*-
@@ -53,6 +53,8 @@ T = {
   'font': 'font',
   'start': 'start',
   'extent': 'extent',
+  'style': 'style',
+  'angle': 'angle',
 }
 
 # common defaults
@@ -161,6 +163,25 @@ class Circle(Shape):
     canvas.create_oval(*pts, **self.tkargs)
 
 
+# mark a point
+class Mark(Shape):
+  """
+  pixel size
+  """
+
+  def __init__(self, point, size, **args):
+    self.point = point
+    self.size = size
+    self.set_args(args)
+
+  def draw(self, canvas, x0=0, y0=0, xscale=1, yscale=1, xoffset=0, yoffset=0):
+    (x, y) = self.point
+    size = self.size
+    (x, y) = (x0 + (x + xoffset) * xscale, y0 - (y + yoffset) * yscale)
+    pts = (x - size, y - size, x + size, y + size)
+    canvas.create_oval(*pts, **self.tkargs)
+
+
 # draw an arc [provisional support]
 class Arc(Shape):
   """
@@ -174,6 +195,9 @@ class Arc(Shape):
   width=<width> - pixel width of outline
   outline=<colour> - outline colour ('black', 'red', '#rrggbb', ...)
   fill=<color> - fill colour (None, 'black', 'red', '#rrggbb', ...)
+  style=<pieslice|chord|arc>
+  start=<degrees>
+  extent=<degrees>
   """
 
   def __init__(self, centre, radius, squish=1.0, **args):
@@ -226,9 +250,11 @@ class Plot(object):
   """
 
   # initialise the plot
-  def __init__(self, xscale=1, yscale=1, xoffset=0, yoffset=0):
+  def __init__(self, xscale=1, yscale=1, xoffset=0, yoffset=0, verbose=0):
     if sys.platform == "darwin" and sys.executable not in ["/usr/bin/python"]:
       print("WARNING! using {exe}".format(exe=sys.executable))
+    if verbose:
+      print("Tk.TkVersion = {v}".format(v=Tk.TkVersion))
     self.objects = list()
     self.border = 20
     self.xscale = float(xscale)
@@ -265,7 +291,7 @@ class Plot(object):
       return
 
     self.clear()
-    self.frame_fn(t)
+    if self.frame_fn(t) and play: self.play_pause_handler()
     self.draw()
 
     # if play is set automatically trigger the following frame
@@ -296,6 +322,10 @@ class Plot(object):
     canvas.bind('<KeyPress-plus>', self.zoom_plus)
     canvas.bind('<KeyPress-equal>', self.zoom_plus)
     canvas.bind('<KeyPress-period>', self.zoom_plus)
+    canvas.bind('<KeyPress-X>', self.zoom_x_plus)
+    canvas.bind('<KeyPress-x>', self.zoom_x_minus)
+    canvas.bind('<KeyPress-Y>', self.zoom_y_plus)
+    canvas.bind('<KeyPress-y>', self.zoom_y_minus)
     canvas.bind('<Double-Button-1>', self.double_click_handler)
     canvas.bind('<Double-Button-2>', self.double_click2_handler)
 
@@ -363,6 +393,27 @@ class Plot(object):
     self.yoffset -= (self.canvas.winfo_height() - 2 * self.border) / (2 * self.yscale)
     self.draw()
 
+  def zoom_x_minus(self, event=None):
+    self.xoffset += (self.canvas.winfo_width() - 2 * self.border) / (2 * self.xscale)
+    self.xscale /= 2.0
+    self.draw()
+
+  def zoom_x_plus(self, event=None):
+    self.xscale *= 2.0
+    self.xoffset -= (self.canvas.winfo_width() - 2 * self.border) / (2 * self.xscale)
+    self.draw()
+
+  def zoom_y_minus(self, event=None):
+    self.yoffset += (self.canvas.winfo_height() - 2 * self.border) / (2 * self.yscale)
+    self.yscale /= 2.0
+    self.draw()
+
+  def zoom_y_plus(self, event=None):
+    self.yscale *= 2.0
+    self.yoffset -= (self.canvas.winfo_height() - 2 * self.border) / (2 * self.yscale)
+    self.draw()
+
+
   def double_click_handler(self, event=None, button=1):
     (x, y) = (event.x, event.y)
     # centre at <x>,<y>
@@ -393,10 +444,12 @@ class Plot(object):
   def frame_handler(self, event):
     self.next_frame()
 
-  def play_pause_handler(self, event):    
+  def play_pause_handler(self, event=None):
     if self.playing:
+      print("[paused]")
       self.playing = 0
     else:
+      print("[running ...]")
       self.playing = 1
       self.next_frame(play=1)
 
@@ -405,27 +458,27 @@ class Plot(object):
   def line(self, *args, **kw): self.add(Line(*args, **kw))
   def polygon(self, *args, **kw): self.add(Polygon(*args, **kw))
   def circle(self, *args, **kw): self.add(Circle(*args, **kw))
+  def mark(self, *args, **kw): self.add(Mark(*args, **kw))
   def arc(self, *args, **kw): self.add(Arc(*args, **kw))
   def label(self, *args, **kw): self.add(Label(*args, **kw))
 
   # graph axes
-  def graph_axes(self, xaxis, yaxis, xlabels=None, ylabels=None):
+  def graph_axes(self, xaxis, yaxis, xlabels=None, ylabels=None, xtext=None, ytext=None):
     (xaxis, yaxis) = map(list, (xaxis, yaxis))
-    (xmax, ymax) = (xaxis[-1], yaxis[-1])
+    (xmin, xmax, ymin, ymax) = (xaxis[0], xaxis[-1], yaxis[0], yaxis[-1])
+    (xscale, yscale) = (self.xscale, self.yscale)
 
     black = "black"
     widths = [1, 2]
     font=("Times New Roman", 18)
 
     # x-axis
-    xt = xmax * 0.015
     for i in xaxis:
-      self.line((-xt, i, xmax, i), width=widths[i == 0], colour=black)
+      self.line((i, ymin - 5 / yscale, i, ymax), width=widths[i == 0], colour=black)
 
     # y-axis
-    yt = ymax * 0.015
     for i in yaxis:
-      self.line((i, -yt, i, ymax), width=widths[i == 0], colour=black)
+      self.line((xmin - 5 / xscale, i, xmax, i), width=widths[i == 0], colour=black)
 
     # x-axis labels
     if xlabels:
@@ -433,7 +486,7 @@ class Plot(object):
       n = len(xlabels) - 1
       for (i, t) in enumerate(xlabels):
         x = xmax * i / n
-        self.label((x, -yt * 1.5), t, colour=black, anchor="n", font=font)
+        self.label((x, ymin - 10 / yscale), t, colour=black, anchor="n", font=font)
 
     # y-axis labels
     if ylabels:
@@ -441,4 +494,12 @@ class Plot(object):
       n = len(ylabels) - 1
       for (i, t) in enumerate(ylabels):
         y = ymax * i / n
-        self.label((-xt * 1.5, y), t, colour=black, anchor="e", font=font)
+        self.label((xmin - 10 / xscale, y), t, colour=black, anchor="e", font=font)
+
+    # x-axis text (Unicode 0x2192 = \N{RIGHTWARD ARROW}
+    if xtext and not(Tk.TkVersion < 8.6):
+      self.label((xmin, ymin - 50 / yscale), xtext + u" \u2192", anchor="w", font=font)
+
+    # y-axis text
+    if ytext and not(Tk.TkVersion < 8.6):
+      self.label((xmin - 50 / xscale, ymin), ytext + u" \u2192", anchor="w", angle=90, font=font)
