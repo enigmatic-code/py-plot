@@ -6,7 +6,7 @@
 # Description:  A Simple Plotting Library Using Tk
 # Author:       Jim Randell
 # Created:      Sat Oct  6 10:33:02 2012
-# Modified:     Mon May 11 17:13:39 2020 (Jim Randell) jim.randell@gmail.com
+# Modified:     Sun Nov 21 11:10:35 2021 (Jim Randell) jim.randell@gmail.com
 # Language:     Python
 # Package:      N/A
 # Status:       Experimental (Do Not Distribute)
@@ -48,6 +48,7 @@ T = {
   'cap': 'capstyle',
   'join': 'joinstyle',
   'arrow': 'arrow',
+  'arrowshape': 'arrowshape',
   'dash': 'dash',
   'anchor': 'anchor',
   'font': 'font',
@@ -93,6 +94,7 @@ class Line(Shape):
   cap=<cap> - cap style ('round', 'projecting', 'butt')
   join=<join> - join style ('round', 'bevel', 'miter')
   arrow=<arrow> - arrow style ('none', 'first', 'last', 'both')
+  arrowshape=<tuple> - arrow shape
   """
 
   def __init__(self, points, **args):
@@ -251,8 +253,12 @@ class Plot(object):
 
   # initialise the plot
   def __init__(self, xscale=1, yscale=1, xoffset=0, yoffset=0, verbose=0):
-    if sys.platform == "darwin" and sys.executable not in ["/usr/bin/python"]:
-      print("WARNING! using {exe}".format(exe=sys.executable))
+    # instead of this use: [[ port install tk +quartz ]] when installing tk via macports
+    #if sys.platform == "darwin":
+    #  # prefixes of Pythons with native Tk
+    #  prefix = ["/usr/bin/python", "/usr/local/bin/python", "/Library/Frameworks", "/System/Library/Frameworks/"]
+    #  if not any(sys.executable.startswith(p) for p in prefix):
+    #    print("WARNING! using {exe}".format(exe=sys.executable))
     if verbose:
       print("Tk.TkVersion = {v}".format(v=Tk.TkVersion))
     self.objects = list()
@@ -313,7 +319,7 @@ class Plot(object):
     if self.frame_fn: self.next_frame()
 
     # interaction
-    canvas.bind('<Configure>', self.draw_handler)
+    canvas.bind('<Configure>', self.configure_handler)
     canvas.bind('<Button-1>', self.click_handler)
     canvas.bind('<B1-Motion>', self.drag_handler)
     canvas.bind('<ButtonRelease-1>', self.release_handler)
@@ -358,7 +364,8 @@ class Plot(object):
 
   # handlers
 
-  def draw_handler(self, event=None):
+  def configure_handler(self, event=None):
+    if self.playing: self.play_pause_handler(event)
     self.draw()
 
   def click_handler(self, event=None):
@@ -366,6 +373,7 @@ class Plot(object):
     (self.delta_x, self.delta_y) = (0, 0)
 
   def drag_handler(self, event=None):
+    if self.playing: self.play_pause_handler(event)
     (x, y) = (event.x, event.y)
     (dx, dy) = (x - self.move_x, y - self.move_y)
     self.delta_x += dx
@@ -463,7 +471,7 @@ class Plot(object):
   def label(self, *args, **kw): self.add(Label(*args, **kw))
 
   # graph axes
-  def graph_axes(self, xaxis, yaxis, xlabels=None, ylabels=None, xtext=None, ytext=None):
+  def graph_axes(self, xaxis, yaxis, xlabels=None, ylabels=None, xtext=None, ytext=None, tick=0.2):
     (xaxis, yaxis) = map(list, (xaxis, yaxis))
     (xmin, xmax, ymin, ymax) = (xaxis[0], xaxis[-1], yaxis[0], yaxis[-1])
     (xscale, yscale) = (self.xscale, self.yscale)
@@ -473,12 +481,14 @@ class Plot(object):
     font=("Times New Roman", 18)
 
     # x-axis
+    xtick = (xaxis[1] - xaxis[0]) * tick
     for i in xaxis:
-      self.line((i, ymin - 5 / yscale, i, ymax), width=widths[i == 0], colour=black)
+      self.line((i, ymin - xtick, i, ymax), width=widths[i == 0], colour=black)
 
     # y-axis
+    ytick = (yaxis[1] - yaxis[0]) * tick
     for i in yaxis:
-      self.line((xmin - 5 / xscale, i, xmax, i), width=widths[i == 0], colour=black)
+      self.line((xmin - ytick, i, xmax, i), width=widths[i == 0], colour=black)
 
     # x-axis labels
     if xlabels:
@@ -503,3 +513,19 @@ class Plot(object):
     # y-axis text
     if ytext and not(Tk.TkVersion < 8.6):
       self.label((xmin - 50 / xscale, ymin), ytext + u" \u2192", anchor="w", angle=90, font=font)
+
+  # plot a polyiamond grid using colours from cols
+  def polyiamonds(self, grid, cols=dict()):
+    (xf, yf) = (0.5, 0.75 ** 0.5)
+    # plot the cells
+    for ((x, y), i) in grid.items():
+      kw = dict(outline="black", width=3, fill=cols.get(i, "white"))
+      (y2, r) = divmod(y, 2)
+      x += xf * y2
+      if r == 0:
+        # upward pointing
+        self.polygon((x, y2 * yf, x + xf, (y2 + 1) * yf, x + 1, y2 * yf), **kw)
+      else:
+        # downward pointing
+        y2 += 1
+        self.polygon((x + 3 * xf, y2 * yf, x + xf, y2 * yf, x + 2 * xf, (y2 - 1) * yf), **kw)
