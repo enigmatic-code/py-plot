@@ -1,4 +1,4 @@
-#!/usr/bin/env python -t
+#! python3
 ###############################################################################
 #
 # File:         plot.py
@@ -6,7 +6,7 @@
 # Description:  A Simple Plotting Library Using Tk
 # Author:       Jim Randell
 # Created:      Sat Oct  6 10:33:02 2012
-# Modified:     Sun Nov 21 11:10:35 2021 (Jim Randell) jim.randell@gmail.com
+# Modified:     Sun Aug 14 17:07:28 2022 (Jim Randell) jim.randell@gmail.com
 # Language:     Python
 # Package:      N/A
 # Status:       Experimental (Do Not Distribute)
@@ -23,7 +23,7 @@
 from __future__ import print_function
 
 __author__ = "Jim Randell <jim.randell@gmail.com>"
-__version__ = "2019-07-20"
+__version__ = "2022-08-14"
 
 import sys
 
@@ -471,7 +471,7 @@ class Plot(object):
   def label(self, *args, **kw): self.add(Label(*args, **kw))
 
   # graph axes
-  def graph_axes(self, xaxis, yaxis, xlabels=None, ylabels=None, xtext=None, ytext=None, tick=0.2):
+  def graph_axes(self, xaxis, yaxis, xlabels=None, ylabels=None, xtext=None, ytext=None, tick=0.2, xtick=None, ytick=None):
     (xaxis, yaxis) = map(list, (xaxis, yaxis))
     (xmin, xmax, ymin, ymax) = (xaxis[0], xaxis[-1], yaxis[0], yaxis[-1])
     (xscale, yscale) = (self.xscale, self.yscale)
@@ -480,15 +480,15 @@ class Plot(object):
     widths = [1, 2]
     font=("Times New Roman", 18)
 
-    # x-axis
-    xtick = (xaxis[1] - xaxis[0]) * tick
+    # x-axis grid lines
+    xt = (xaxis[1] - xaxis[0]) * (xtick or tick)
     for i in xaxis:
-      self.line((i, ymin - xtick, i, ymax), width=widths[i == 0], colour=black)
+      self.line((i, ymin - xt, i, ymax), width=widths[i == 0], colour=black)
 
-    # y-axis
-    ytick = (yaxis[1] - yaxis[0]) * tick
+    # y-axis grid lines
+    yt = (yaxis[1] - yaxis[0]) * (ytick or tick)
     for i in yaxis:
-      self.line((xmin - ytick, i, xmax, i), width=widths[i == 0], colour=black)
+      self.line((xmin - yt, i, xmax, i), width=widths[i == 0], colour=black)
 
     # x-axis labels
     if xlabels:
@@ -506,7 +506,7 @@ class Plot(object):
         y = ymax * i / n
         self.label((xmin - 10 / xscale, y), t, colour=black, anchor="e", font=font)
 
-    # x-axis text (Unicode 0x2192 = \N{RIGHTWARD ARROW}
+    # x-axis text (Unicode 0x2192 = \N{RIGHTWARD ARROW})
     if xtext and not(Tk.TkVersion < 8.6):
       self.label((xmin, ymin - 50 / yscale), xtext + u" \u2192", anchor="w", font=font)
 
