@@ -6,7 +6,7 @@
 # Description:  A Simple Plotting Library Using Tk
 # Author:       Jim Randell
 # Created:      Sat Oct  6 10:33:02 2012
-# Modified:     Sun Aug 14 17:07:28 2022 (Jim Randell) jim.randell@gmail.com
+# Modified:     Sat Sep  3 16:24:36 2022 (Jim Randell) jim.randell@gmail.com
 # Language:     Python
 # Package:      N/A
 # Status:       Experimental (Do Not Distribute)
@@ -495,16 +495,16 @@ class Plot(object):
       xlabels = list(xlabels)
       n = len(xlabels) - 1
       for (i, t) in enumerate(xlabels):
-        x = xmax * i / n
-        self.label((x, ymin - 10 / yscale), t, colour=black, anchor="n", font=font)
+        x = (xmax - xmin) * i / n
+        self.label((xmin + x, ymin - 10 / yscale), t, colour=black, anchor="n", font=font)
 
     # y-axis labels
     if ylabels:
       ylabels = list(ylabels)
       n = len(ylabels) - 1
       for (i, t) in enumerate(ylabels):
-        y = ymax * i / n
-        self.label((xmin - 10 / xscale, y), t, colour=black, anchor="e", font=font)
+        y = (ymax - ymin) * i / n
+        self.label((xmin - 10 / xscale, ymin + y), t, colour=black, anchor="e", font=font)
 
     # x-axis text (Unicode 0x2192 = \N{RIGHTWARD ARROW})
     if xtext and not(Tk.TkVersion < 8.6):
