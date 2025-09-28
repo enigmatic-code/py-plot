@@ -6,7 +6,7 @@
 # Description:  A Simple Plotting Library Using Tk
 # Author:       Jim Randell
 # Created:      Sat Oct  6 10:33:02 2012
-# Modified:     Sun Sep 28 12:49:07 2025 (Jim Randell) jim.randell@gmail.com
+# Modified:     Sun Sep 28 16:46:11 2025 (Jim Randell) jim.randell@gmail.com
 # Language:     Python
 # Package:      N/A
 # Status:       Experimental (Do Not Distribute)
@@ -23,7 +23,7 @@
 from __future__ import print_function
 
 __author__ = "Jim Randell <jim.randell@gmail.com>"
-__version__ = "2022-08-14"
+__version__ = "2025-09-28"
 
 import sys
 
@@ -267,6 +267,7 @@ class Plot(object):
     self.yscale = float(yscale)
     self.xoffset = xoffset
     self.yoffset = yoffset
+    self.pan = 4.0
     # for animations
     self.frame_iter = None
     self.frame_fn = None
@@ -334,6 +335,10 @@ class Plot(object):
     canvas.bind('<KeyPress-y>', self.zoom_y_minus)
     canvas.bind('<Double-Button-1>', self.double_click_handler)
     canvas.bind('<Double-Button-2>', self.double_click2_handler)
+    canvas.bind('<KeyPress-Up>', self.pan_up_handler)
+    canvas.bind('<KeyPress-Down>', self.pan_down_handler)
+    canvas.bind('<KeyPress-Right>', self.pan_right_handler)
+    canvas.bind('<KeyPress-Left>', self.pan_left_handler)
 
     # keyboard actions
     # Q, Esc = quit
@@ -377,6 +382,7 @@ class Plot(object):
     print("  Y = zoom in y-dimension")
     print("  x = zoom out x-dimension")
     print("  y = zoom out y-dimension")
+    print("  left/right/up/down = pan")
     print("  q/esc = quit")
     print("  s = screenshot (macOS only)")
     print("  i = print info")
@@ -442,6 +448,21 @@ class Plot(object):
     self.yoffset -= (self.canvas.winfo_height() - 2 * self.border) / (2 * self.yscale)
     self.draw()
 
+  def pan_up_handler(self, event=None):
+    self.yoffset += self.pan
+    self.draw()
+
+  def pan_down_handler(self, event=None):
+    self.yoffset -= self.pan
+    self.draw()
+
+  def pan_right_handler(self, event=None):
+    self.xoffset += self.pan
+    self.draw()
+
+  def pan_left_handler(self, event=None):
+    self.xoffset -= self.pan
+    self.draw()
 
   def double_click_handler(self, event=None, button=1):
     (x, y) = (event.x, event.y)
