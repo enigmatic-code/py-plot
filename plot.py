@@ -6,7 +6,7 @@
 # Description:  A Simple Plotting Library Using Tk
 # Author:       Jim Randell
 # Created:      Sat Oct  6 10:33:02 2012
-# Modified:     Sat Sep  3 16:24:36 2022 (Jim Randell) jim.randell@gmail.com
+# Modified:     Sun Sep 28 12:49:07 2025 (Jim Randell) jim.randell@gmail.com
 # Language:     Python
 # Package:      N/A
 # Status:       Experimental (Do Not Distribute)
@@ -79,7 +79,7 @@ class Shape(object):
       if k in T:
         tkargs[T[k]] = v
     self.tkargs = tkargs
-    
+
 
 # draw a line
 class Line(Shape):
@@ -125,7 +125,7 @@ class Polygon(Shape):
 
   def __init__(self, points, **args):
     self.pts = points
-    self.set_args(args, fill=None)
+    self.set_args(args, fill=None, width=1)
 
   def draw(self, canvas, x0=0, y0=0, xscale=1.0, yscale=1.0, xoffset=0, yoffset=0):
     pts = []
@@ -305,7 +305,7 @@ class Plot(object):
       self.canvas.after(self.frame_delay, self.next_frame, 1)
 
     return t
-    
+
   # display the objects
   def display(self):
 
@@ -349,6 +349,9 @@ class Plot(object):
     canvas.bind('<KeyPress-f>', self.frame_handler)
     canvas.bind('<KeyPress-space>', self.play_pause_handler)
 
+    # H = help
+    canvas.bind('<KeyPress-h>', self.help_handler)
+
     canvas.focus_set()
     Tk.mainloop()
 
@@ -363,6 +366,24 @@ class Plot(object):
       )
 
   # handlers
+  def help_handler(self, event=None):
+    print('=' * 40)
+    print("  click + drag = move")
+    print("  +/= = zoom in")
+    print("  -/, = zoom out")
+    print("  double click left = zoom in")
+    print("  double click right = zoom out")
+    print("  X = zoom in x-dimension")
+    print("  Y = zoom in y-dimension")
+    print("  x = zoom out x-dimension")
+    print("  y = zoom out y-dimension")
+    print("  q/esc = quit")
+    print("  s = screenshot (macOS only)")
+    print("  i = print info")
+    print("  space = play/pause (animation)")
+    print("  f = single frame advance (animation)")
+    print("  h = help (this message)")
+    print('=' * 40)
 
   def configure_handler(self, event=None):
     if self.playing: self.play_pause_handler(event)
@@ -469,6 +490,11 @@ class Plot(object):
   def mark(self, *args, **kw): self.add(Mark(*args, **kw))
   def arc(self, *args, **kw): self.add(Arc(*args, **kw))
   def label(self, *args, **kw): self.add(Label(*args, **kw))
+
+  # draw a bunch of line segments
+  def lines(self, segs, *args, **kw):
+    for seg in segs:
+      self.line(seg, *args, **kw)
 
   # graph axes
   def graph_axes(self, xaxis, yaxis, xlabels=None, ylabels=None, xtext=None, ytext=None, tick=0.2, xtick=None, ytick=None):
