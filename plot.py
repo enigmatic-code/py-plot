@@ -6,7 +6,7 @@
 # Description:  A Simple Plotting Library Using Tk
 # Author:       Jim Randell
 # Created:      Sat Oct  6 10:33:02 2012
-# Modified:     Sun Sep 28 16:46:11 2025 (Jim Randell) jim.randell@gmail.com
+# Modified:     Sun Oct  5 13:13:27 2025 (Jim Randell) jim.randell@gmail.com
 # Language:     Python
 # Package:      N/A
 # Status:       Experimental (Do Not Distribute)
@@ -23,7 +23,7 @@
 from __future__ import print_function
 
 __author__ = "Jim Randell <jim.randell@gmail.com>"
-__version__ = "2025-09-28"
+__version__ = "2025-10-05"
 
 import sys
 
@@ -252,7 +252,7 @@ class Plot(object):
   """
 
   # initialise the plot
-  def __init__(self, xscale=1, yscale=1, xoffset=0, yoffset=0, verbose=0):
+  def __init__(self, width=600, height=600, xscale=1, yscale=1, xoffset=0, yoffset=0, verbose=0):
     # instead of this use: [[ port install tk +quartz ]] when installing tk via macports
     #if sys.platform == "darwin":
     #  # prefixes of Pythons with native Tk
@@ -261,6 +261,8 @@ class Plot(object):
     #    print("WARNING! using {exe}".format(exe=sys.executable))
     if verbose:
       print("Tk.TkVersion = {v}".format(v=Tk.TkVersion))
+    self.width = width
+    self.height = height
     self.objects = list()
     self.border = 20
     self.xscale = float(xscale)
@@ -313,7 +315,7 @@ class Plot(object):
     # create a window with a canvas in it
     master = Tk.Tk()
 
-    self.canvas = canvas = Tk.Canvas(master, width=600, height=600, highlightthickness=0, background="white")
+    self.canvas = canvas = Tk.Canvas(master, width=self.width, height=self.height, highlightthickness=0, background="white")
     canvas.pack(fill=Tk.BOTH, expand=1)
 
     # if we are animating draw the first frame
@@ -362,10 +364,12 @@ class Plot(object):
 
   # draw the objects
   def draw(self):
+    self.width = self.canvas.winfo_width()
+    self.height = self.canvas.winfo_height()
     self.canvas.delete(Tk.ALL)
     for i in self.objects:
       i.draw(
-        self.canvas, self.border, self.canvas.winfo_height() - self.border,
+        self.canvas, self.border, self.height - self.border,
         xscale=self.xscale, yscale=self.yscale,
         xoffset=self.xoffset, yoffset=self.yoffset
       )
@@ -415,8 +419,8 @@ class Plot(object):
     self.draw()
 
   def zoom_minus(self, event=None):
-    self.xoffset += (self.canvas.winfo_width() - 2 * self.border) / (2 * self.xscale)
-    self.yoffset += (self.canvas.winfo_height() - 2 * self.border) / (2 * self.yscale)
+    self.xoffset += (self.width - 2 * self.border) / (2 * self.xscale)
+    self.yoffset += (self.height - 2 * self.border) / (2 * self.yscale)
     self.xscale /= 2.0
     self.yscale /= 2.0
     self.draw()
@@ -424,28 +428,28 @@ class Plot(object):
   def zoom_plus(self, event=None):
     self.xscale *= 2.0
     self.yscale *= 2.0
-    self.xoffset -= (self.canvas.winfo_width() - 2 * self.border) / (2 * self.xscale)
-    self.yoffset -= (self.canvas.winfo_height() - 2 * self.border) / (2 * self.yscale)
+    self.xoffset -= (self.width - 2 * self.border) / (2 * self.xscale)
+    self.yoffset -= (self.height - 2 * self.border) / (2 * self.yscale)
     self.draw()
 
   def zoom_x_minus(self, event=None):
-    self.xoffset += (self.canvas.winfo_width() - 2 * self.border) / (2 * self.xscale)
+    self.xoffset += (self.width - 2 * self.border) / (2 * self.xscale)
     self.xscale /= 2.0
     self.draw()
 
   def zoom_x_plus(self, event=None):
     self.xscale *= 2.0
-    self.xoffset -= (self.canvas.winfo_width() - 2 * self.border) / (2 * self.xscale)
+    self.xoffset -= (self.width - 2 * self.border) / (2 * self.xscale)
     self.draw()
 
   def zoom_y_minus(self, event=None):
-    self.yoffset += (self.canvas.winfo_height() - 2 * self.border) / (2 * self.yscale)
+    self.yoffset += (self.height - 2 * self.border) / (2 * self.yscale)
     self.yscale /= 2.0
     self.draw()
 
   def zoom_y_plus(self, event=None):
     self.yscale *= 2.0
-    self.yoffset -= (self.canvas.winfo_height() - 2 * self.border) / (2 * self.yscale)
+    self.yoffset -= (self.height - 2 * self.border) / (2 * self.yscale)
     self.draw()
 
   def pan_up_handler(self, event=None):
@@ -467,7 +471,7 @@ class Plot(object):
   def double_click_handler(self, event=None, button=1):
     (x, y) = (event.x, event.y)
     # centre at <x>,<y>
-    (dx, dy) = (self.canvas.winfo_width() / 2 - x, y - self.canvas.winfo_height() / 2)
+    (dx, dy) = (0.5 * self.width - x, y - 0.5 * self.height)
     self.xoffset += dx / self.xscale
     self.yoffset += dy / self.yscale
     if button == 1:
@@ -481,7 +485,7 @@ class Plot(object):
     self.double_click_handler(event, 2)
 
   def info_handler(self, event):
-      print("xscale={xscale}, yscale={yscale}, xoffset={xoffset}, yoffset={yoffset}".format(**self.__dict__))
+    print("width={width}, height={height}, xscale={xscale}, yscale={yscale}, xoffset={xoffset}, yoffset={yoffset}".format(**self.__dict__))
 
   def screencapture(self, event=None):
     if sys.platform == 'darwin':
